@@ -1,210 +1,177 @@
 import React, { useState } from 'react';
-import { 
-  Container, 
-  TextField, 
-  Button, 
-  Paper, 
-  Typography, 
-  Box,
-  CircularProgress,
-  Avatar
-} from '@mui/material';
+import { Container, TextField, Button, Box, Typography, CircularProgress, Grid, Paper, Divider } from '@mui/material';
+import SendIcon from '@mui/icons-material/Send';
 import PersonIcon from '@mui/icons-material/Person';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import axios from 'axios';
+import './App.css';
 
 function App() {
-  const [step, setStep] = useState('setup'); // setup or interview
-  const [loading, setLoading] = useState(false);
   const [context, setContext] = useState('');
+  const [background, setBackground] = useState('');
   const [goals, setGoals] = useState('');
-  const [additionalContext, setAdditionalContext] = useState('');
   const [messages, setMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [setupComplete, setSetupComplete] = useState(false);
 
-  const handleSetup = async (e) => {
+  const handleSetupSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setIsLoading(true);
     try {
       const response = await axios.post('/initialize_interview', {
         context,
+        background,
         goals,
-        additional_context: additionalContext
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
-      setMessages([{ text: response.data.message, isUser: false }]);
-      setStep('interview');
+      
+      if (response.status === 200) {
+        setMessages([{ text: response.data.message, isUser: false }]);
+        setSetupComplete(true);
+      }
     } catch (error) {
       console.error('Error:', error);
-      alert('Error initializing interview');
     }
-    setLoading(false);
+    setIsLoading(false);
   };
 
-  const handleSendMessage = async (e) => {
+  const handleMessageSubmit = async (e) => {
     e.preventDefault();
     if (!currentMessage.trim()) return;
 
-    setMessages(prev => [...prev, { text: currentMessage, isUser: true }]);
+    const userMessage = currentMessage;
     setCurrentMessage('');
-    setLoading(true);
+    setMessages(prev => [...prev, { text: userMessage, isUser: true }]);
+    setIsLoading(true);
 
     try {
-      const response = await axios.post('/chat', { message: currentMessage });
-      setMessages(prev => [...prev, { text: response.data.message, isUser: false }]);
+      const response = await axios.post('/chat', {
+        message: userMessage
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.status === 200) {
+        setMessages(prev => [...prev, { text: response.data.message, isUser: false }]);
+      }
     } catch (error) {
       console.error('Error:', error);
-      alert('Error sending message');
     }
-    setLoading(false);
+    setIsLoading(false);
   };
 
-  const MessageBubble = ({ message, isUser }) => (
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 2,
-        mb: 2,
-        flexDirection: isUser ? 'row-reverse' : 'row',
-      }}
-    >
-      <Avatar 
-        sx={{ 
-          bgcolor: isUser ? '#2563eb' : '#64748b',
-          width: 32,
-          height: 32
-        }}
-      >
-        {isUser ? <PersonIcon /> : <SmartToyIcon />}
-      </Avatar>
-      <Box
-        sx={{
-          p: 2,
-          backgroundColor: isUser ? '#e3f2fd' : '#f5f5f5',
-          borderRadius: 2,
-          maxWidth: '80%',
-          boxShadow: 1,
-          '& p': { m: 0 }
-        }}
-      >
-        <Typography>{message.text}</Typography>
-      </Box>
-    </Box>
-  );
-
-  if (step === 'setup') {
-    return (
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
-          <Typography variant="h4" gutterBottom align="center">
-            Interview Setup
-          </Typography>
-          <form onSubmit={handleSetup}>
-            <TextField
-              fullWidth
-              label="Context about the interviewee"
-              multiline
-              rows={4}
-              value={context}
-              onChange={(e) => setContext(e.target.value)}
-              required
-              sx={{ mb: 3 }}
-            />
-            <TextField
-              fullWidth
-              label="Goals for this interview"
-              multiline
-              rows={4}
-              value={goals}
-              onChange={(e) => setGoals(e.target.value)}
-              required
-              sx={{ mb: 3 }}
-            />
-            <TextField
-              fullWidth
-              label="Additional context (optional)"
-              multiline
-              rows={4}
-              value={additionalContext}
-              onChange={(e) => setAdditionalContext(e.target.value)}
-              sx={{ mb: 3 }}
-            />
-            <Button 
-              type="submit" 
-              variant="contained" 
-              fullWidth 
-              disabled={loading}
-              sx={{ py: 1.5 }}
-            >
-              {loading ? <CircularProgress size={24} /> : 'Start Interview'}
-            </Button>
-          </form>
-        </Paper>
-      </Container>
-    );
-  }
-
   return (
-    <Container maxWidth="md" sx={{ py: 4, height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <Paper elevation={3} sx={{ p: 4, borderRadius: 2, flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <Typography variant="h4" gutterBottom align="center">
-          Interview Session
-        </Typography>
-        
-        <Box sx={{ 
-          flex: 1, 
-          overflowY: 'auto', 
-          mb: 3,
-          px: 2,
-          '&::-webkit-scrollbar': {
-            width: '8px',
-          },
-          '&::-webkit-scrollbar-track': {
-            background: '#f1f1f1',
-            borderRadius: '4px',
-          },
-          '&::-webkit-scrollbar-thumb': {
-            background: '#888',
-            borderRadius: '4px',
-          },
-        }}>
-          {messages.map((message, index) => (
-            <MessageBubble key={index} message={message} isUser={message.isUser} />
-          ))}
-          {loading && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
-              <CircularProgress />
+    <Container className="container">
+      <Grid container spacing={3}>
+        {/* Left side - Setup Form */}
+        <Grid item xs={12} md={4}>
+          <Paper className="setup-panel">
+            <Typography variant="h5" className="panel-title">
+              Interview Setup
+            </Typography>
+            <Box component="form" onSubmit={handleSetupSubmit}>
+              <TextField
+                label="Context"
+                multiline
+                rows={4}
+                value={context}
+                onChange={(e) => setContext(e.target.value)}
+                fullWidth
+                required
+                margin="normal"
+                placeholder="Describe the context of this interview"
+                disabled={setupComplete}
+              />
+              
+              <TextField
+                label="Personal Background"
+                multiline
+                rows={3}
+                value={background}
+                onChange={(e) => setBackground(e.target.value)}
+                fullWidth
+                margin="normal"
+                placeholder="Share relevant background information"
+                disabled={setupComplete}
+              />
+              
+              <TextField
+                label="Goals"
+                multiline
+                rows={3}
+                value={goals}
+                onChange={(e) => setGoals(e.target.value)}
+                fullWidth
+                required
+                margin="normal"
+                placeholder="What do you hope to achieve?"
+                disabled={setupComplete}
+              />
+              
+              {!setupComplete && (
+                <Button
+                  type="submit"
+                  variant="contained"
+                  color="primary"
+                  className="submit-button"
+                  disabled={isLoading}
+                >
+                  {isLoading ? <CircularProgress size={24} /> : 'Start Interview'}
+                </Button>
+              )}
             </Box>
-          )}
-        </Box>
+          </Paper>
+        </Grid>
 
-        <form onSubmit={handleSendMessage} style={{ display: 'flex', gap: '16px' }}>
-          <TextField
-            fullWidth
-            value={currentMessage}
-            onChange={(e) => setCurrentMessage(e.target.value)}
-            placeholder="Type your message..."
-            disabled={loading}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                borderRadius: '12px',
-              }
-            }}
-          />
-          <Button 
-            type="submit" 
-            variant="contained" 
-            disabled={loading || !currentMessage.trim()}
-            sx={{ 
-              px: 4,
-              borderRadius: '12px',
-              minWidth: '100px'
-            }}
-          >
-            Send
-          </Button>
-        </form>
-      </Paper>
+        {/* Right side - Chat Interface */}
+        <Grid item xs={12} md={8}>
+          <Paper className="chat-panel">
+            <Typography variant="h5" className="panel-title">
+              Interview Session
+            </Typography>
+            <Box className="messages">
+              {messages.map((message, index) => (
+                <Box key={index} className={`message-container ${message.isUser ? 'user' : ''}`}>
+                  <Box className="avatar">
+                    {message.isUser ? <PersonIcon /> : <SmartToyIcon />}
+                  </Box>
+                  <Box className="message-bubble">
+                    {message.text}
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+            
+            <Divider className="chat-divider" />
+            
+            <Box component="form" onSubmit={handleMessageSubmit} className="input-form">
+              <TextField
+                value={currentMessage}
+                onChange={(e) => setCurrentMessage(e.target.value)}
+                placeholder="Type your message..."
+                fullWidth
+                disabled={!setupComplete || isLoading}
+              />
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+                className="send-button"
+                disabled={!setupComplete || isLoading || !currentMessage.trim()}
+                endIcon={isLoading ? <CircularProgress size={20} /> : <SendIcon />}
+              >
+                Send
+              </Button>
+            </Box>
+          </Paper>
+        </Grid>
+      </Grid>
     </Container>
   );
 }

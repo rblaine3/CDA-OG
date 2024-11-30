@@ -5,6 +5,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, BaseMessage
+from planning_agent import PlanningAgent
 import os
 from dotenv import load_dotenv
 import openai
@@ -43,13 +44,14 @@ class ResearchAgent:
         return f"[{self.name}]: {response.content}"
 
 class GroupDiscussion:
-    def __init__(self, context: dict):
+    def __init__(self, context: dict, plan: dict = None):
         self.context = context
+        self.plan = plan
         self.agents = [
             ResearchAgent(
                 "Lead Interviewer",
-                "Empathetic Interviewer",
-                """Your role is to conduct methodologically sound and empathetic interviews.
+                "Expert Research Interviewer",
+                """Your role is to conduct unbiased, methodologically sound interviews.
                 
                 CORE PRINCIPLES:
                 1. Never make assumptions
@@ -64,7 +66,6 @@ class GroupDiscussion:
                 1. Active Listening
                    - Always acknowledge new information
                    - Build on what they just said
-                   - Never ignore their points
                    - Match their level of formality
                 
                 2. Natural Flow
@@ -205,7 +206,7 @@ class GroupDiscussion:
                    - Trace impact chains
                 
                 4. Perspective Expansion
-                   - Different stakeholders
+                   - Different stakeholders 
                    - Various timeframes
                    - Multiple scenarios
                 
@@ -234,6 +235,15 @@ class GroupDiscussion:
         
     def discuss(self, user_message: str) -> str:
         # Create the discussion context
+        plan_context = ""
+        if self.plan:
+            plan_context = f"""
+            Interview Type: {self.plan.get('plan').interview_type}
+            Key Topics: {', '.join(self.plan.get('plan').key_topics)}
+            Communication Style: {self.plan.get('plan').communication_style}
+            Special Considerations: {', '.join(self.plan.get('plan').special_considerations)}
+            """
+
         discussion_prompt = HumanMessage(content=f"""
         Interview Context:
         {self.context['context']}
@@ -244,6 +254,9 @@ class GroupDiscussion:
         Additional Context:
         {self.context['additional_context']}
         
+        Interview Plan:
+        {plan_context}
+        
         Current User Response:
         {user_message}
         
@@ -252,14 +265,15 @@ class GroupDiscussion:
         
         Analyze the current state:
         1. Lead Interviewer: 
-           - Assess if we're still aligned with our goals
+           - Assess if we're still aligned with our goals and key topics
            - Generate a focused follow-up question (max 15 words)
            - If off-topic, redirect back to relevant goals
-        2. Completeness Analyst: Identify information gaps
-        3. Depth Explorer: Suggest areas for deeper exploration
+           - Follow the planned communication style
+        2. Completeness Analyst: Identify information gaps in key topics
+        3. Depth Explorer: Suggest areas for deeper exploration within current topic
         
         Choose the most appropriate next question based on the combined analysis.
-        Prioritize staying on track with our interview goals.
+        Prioritize staying on track with our interview goals and plan.
         
         IMPORTANT: Start your response directly with the question or statement.
         Do not use any prefixes, labels, or colons.
@@ -432,6 +446,11 @@ def setup():
                 </div>
                 
                 <div class="form-group">
+                    <label for="background">Background about the interviewee:</label>
+                    <textarea name="background" id="background" required></textarea>
+                </div>
+                
+                <div class="form-group">
                     <label for="goals">Goals for this interview:</label>
                     <textarea name="goals" id="goals" required></textarea>
                 </div>
@@ -454,15 +473,30 @@ def initialize_interview():
         data = request.get_json()
         context = {
             'context': data.get('context', ''),
+            'background': data.get('background', ''),
             'goals': data.get('goals', ''),
             'additional_context': data.get('additional_context', '')
         }
+        
+        # Create interview plan first
+        planning_agent = PlanningAgent()
+        plan = planning_agent.create_interview_plan(
+            context=context['context'],
+            background=context['background'],
+            goals=context['goals']
+        )
+        
+        # Initialize agents with the plan
+        agent_config = planning_agent.initialize_agents(plan)
+        
+        # Store in session
         session['interview_context'] = context
+        session['interview_plan'] = vars(plan)  # Convert InterviewPlan to dict for session storage
         
         global group_discussion
-        group_discussion = GroupDiscussion(context)
+        group_discussion = GroupDiscussion(context, plan=agent_config)
         
-        # Get initial question from the group
+        # Get initial question
         initial_response = group_discussion.discuss(
             "The interview is starting. What should be our opening question?"
         )
