@@ -748,5 +748,33 @@ def chat():
         print("Traceback:", traceback.format_exc())
         return jsonify({'error': str(e)}), 500
 
+@app.route('/transcribe', methods=['POST'])
+def transcribe_audio():
+    try:
+        if 'audio' not in request.files:
+            return jsonify({'error': 'No audio file provided'}), 400
+        
+        audio_file = request.files['audio']
+        
+        # Save the file temporarily
+        temp_path = 'temp_audio.wav'
+        audio_file.save(temp_path)
+        
+        # Open the file and transcribe
+        with open(temp_path, 'rb') as audio:
+            transcript = openai.audio.transcriptions.create(
+                model="whisper-1",
+                file=audio
+            )
+        
+        # Clean up the temporary file
+        import os
+        os.remove(temp_path)
+        
+        return jsonify({'text': transcript.text})
+    except Exception as e:
+        print(f"Error in transcription: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
