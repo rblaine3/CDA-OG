@@ -16,7 +16,7 @@ const MainLayout = ({ children }) => {
 
   const menuItems = [
     { text: 'Home', icon: <HomeIcon />, path: '/' },
-    { text: 'New Chat', icon: <AddCommentIcon />, path: '/chat-setup' },
+    { text: 'Chat Setup', icon: <AddCommentIcon />, path: '/chat-setup' },
     { text: 'Active Chat', icon: <ChatIcon />, path: '/chat' },
     { text: 'History', icon: <HistoryIcon />, path: '/history' },
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },

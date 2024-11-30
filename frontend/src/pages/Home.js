@@ -30,7 +30,7 @@ const Home = () => {
             startIcon={<ChatIcon />}
             onClick={() => navigate('/chat-setup')}
           >
-            Start New Chat
+            Chat Setup
           </Button>
         </Paper>
       </Grid>
