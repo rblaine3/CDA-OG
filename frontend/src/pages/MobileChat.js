@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, IconButton, Typography, Fade, useTheme } from '@mui/material';
+import { Box, IconButton, Typography, Fade, useTheme, TextField } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useReactMediaRecorder } from 'react-media-recorder';
 import KeyboardIcon from '@mui/icons-material/Keyboard';
 import CloseIcon from '@mui/icons-material/Close';
+import MicIcon from '@mui/icons-material/Mic';
 import axios from 'axios';
 import { keyframes } from '@mui/system';
 
@@ -226,39 +227,70 @@ const MobileChat = () => {
             sx={{
               display: 'flex',
               gap: 2,
+              width: '100%',
               position: 'relative',
+              alignItems: 'center',
             }}
           >
-            <input
-              type="text"
+            <TextField
+              fullWidth
               value={textMessage}
               onChange={(e) => setTextMessage(e.target.value)}
               placeholder="Type your response..."
-              style={{
-                width: '100%',
-                padding: '20px',
-                borderRadius: '25px',
-                border: '2px solid rgba(100, 255, 218, 0.3)',
-                background: 'rgba(255, 255, 255, 0.05)',
-                color: '#ffffff',
-                fontSize: '1.2rem',
-                outline: 'none',
-              }}
+              variant="outlined"
+              multiline
+              maxRows={4}
               autoFocus
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  borderRadius: '25px',
+                  color: '#ffffff',
+                  fontSize: '1.2rem',
+                  padding: '12px',
+                  '& fieldset': {
+                    borderColor: 'rgba(100, 255, 218, 0.3)',
+                    borderWidth: '2px',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: 'rgba(100, 255, 218, 0.5)',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#64ffda',
+                  },
+                },
+                '& .MuiOutlinedInput-input': {
+                  padding: '12px 16px',
+                  '&::placeholder': {
+                    color: 'rgba(255, 255, 255, 0.5)',
+                    opacity: 1,
+                  },
+                },
+                flex: 1,
+              }}
+              InputProps={{
+                sx: {
+                  color: '#ffffff',
+                }
+              }}
             />
             <IconButton
               onClick={() => setShowTextInput(false)}
               sx={{
                 color: '#64ffda',
                 backgroundColor: 'rgba(100, 255, 218, 0.1)',
-                width: '60px',
-                height: '60px',
+                width: '56px',
+                height: '56px',
                 '&:hover': {
                   backgroundColor: 'rgba(100, 255, 218, 0.2)',
                 },
+                '&:active': {
+                  transform: 'scale(0.95)',
+                },
+                transition: 'all 0.2s ease-in-out',
               }}
             >
-              <CloseIcon sx={{ fontSize: '2rem' }} />
+              <CloseIcon sx={{ fontSize: '28px' }} />
             </IconButton>
           </Box>
         ) : (
@@ -277,12 +309,15 @@ const MobileChat = () => {
                 width: '120px',
                 height: '120px',
                 borderRadius: '50%',
-                backgroundColor: isRecording ? 'rgba(244, 67, 54, 0.1)' : 'rgba(100, 255, 218, 0.1)',
+                backgroundColor: isRecording 
+                  ? 'rgba(244, 67, 54, 0.1)' 
+                  : 'rgba(100, 255, 218, 0.15)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
                 position: 'relative',
+                transition: 'all 0.3s ease-in-out',
                 '&::before': isRecording ? {
                   content: '""',
                   position: 'absolute',
@@ -294,18 +329,22 @@ const MobileChat = () => {
                 } : {},
                 '&:hover': {
                   transform: 'scale(1.05)',
+                  backgroundColor: 'rgba(100, 255, 218, 0.25)',
                 },
-                transition: 'all 0.3s ease',
+                '&:active': {
+                  transform: 'scale(0.95)',
+                },
+                boxShadow: isRecording
+                  ? '0 0 20px rgba(244, 67, 54, 0.3)'
+                  : '0 0 20px rgba(100, 255, 218, 0.3)',
               }}
             >
-              <Box
-                component="img"
-                src="/mic-icon.svg"
-                alt="Voice Input"
+              <MicIcon 
                 sx={{
-                  width: '60px',
-                  height: '60px',
-                  filter: 'drop-shadow(0 0 10px #64ffda)',
+                  fontSize: '48px',
+                  color: isRecording ? '#f44336' : '#64ffda',
+                  filter: `drop-shadow(0 0 8px ${isRecording ? '#f44336' : '#64ffda'})`,
+                  transition: 'all 0.3s ease-in-out',
                 }}
               />
             </Box>
